@@ -29,22 +29,19 @@ func errMsg(err error) {
 func whichInput(filePath string, flags [5]string) ([]byte, bool) {
 	var content []byte
 	var err error
-	var handled, fp bool
+	var fp bool
 
 	if strings.Contains(filePath, "wc") {
 		content, err = readFromStdin()
 		errMsg(err)
-		handled = true
-	} else {
+	} else if len(filePath) == 2 {
 		for _, value := range flags {
 			if filePath == value {
 				content, err = readFromStdin()
 				errMsg(err)
-				handled = true
 			}
 		}
-	}
-	if !handled {
+	} else {
 		content, err = readFromFile(filePath)
 		fp = true
 		errMsg(err)
