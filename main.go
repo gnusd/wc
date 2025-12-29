@@ -26,7 +26,7 @@ func errMsg(err error) {
 	}
 }
 
-func whichInput(filePath string, flags [5]string) ([]byte, bool) {
+func whichInput(filePath string) ([]byte, bool) {
 	var content []byte
 	var err error
 	var fp bool
@@ -34,13 +34,9 @@ func whichInput(filePath string, flags [5]string) ([]byte, bool) {
 	if strings.Contains(filePath, "wc") {
 		content, err = readFromStdin()
 		errMsg(err)
-	} else if len(filePath) == 2 {
-		for _, value := range flags {
-			if filePath == value {
-				content, err = readFromStdin()
-				errMsg(err)
-			}
-		}
+	} else if strings.HasPrefix(filePath, "-") {
+		content, err = readFromStdin()
+		errMsg(err)
 	} else {
 		content, err = readFromFile(filePath)
 		fp = true
@@ -132,16 +128,9 @@ func main() {
 	p := flag.Bool("p", false, "Print number of and titles on single line")
 	flag.Parse()
 
-	var flags [5]string
-	flags[0] = "-l"
-	flags[1] = "-c"
-	flags[2] = "-m"
-	flags[3] = "-w"
-	flags[4] = "-p"
-
 	filePath := os.Args[len(os.Args)-1]
 
-	content, fp := whichInput(filePath, flags)
+	content, fp := whichInput(filePath)
 	lineCount, wordCount, charCount, byteCount := count(content, *l, *c, *m, *w)
 	printOutput(lineCount, wordCount, charCount, byteCount, *p, filePath, fp)
 
