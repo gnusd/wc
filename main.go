@@ -19,28 +19,40 @@ func readFromStdin() ([]byte, error) {
 
 }
 
-func whichInput(filePath string) []byte {
+func errMsg(err error) {
+
+	if err != nil {
+		fmt.Println("An error has occurd: ", err)
+	}
+}
+
+func whichInput(filePath string, flags [5]string) ([]byte, bool) {
 	var content []byte
 	var err error
+	var handled, fp bool
 
 	if strings.Contains(filePath, "wc") {
 		content, err = readFromStdin()
-		if err != nil {
-			fmt.Println("Error ", err)
-		}
-	} else if len(filePath) > 1 {
-		content, err = readFromFile(filePath)
-		if err != nil {
-			content, err = readFromStdin()
-			if err != nil {
-				fmt.Println("Error ", err)
+		errMsg(err)
+		handled = true
+	} else {
+		for _, value := range flags {
+			if filePath == value {
+				content, err = readFromStdin()
+				errMsg(err)
+				handled = true
 			}
 		}
 	}
-	return content
+	if !handled {
+		content, err = readFromFile(filePath)
+		fp = true
+		errMsg(err)
+	}
+	return content, fp
 }
 
-func count(content []byte, l bool, c bool, m bool, w bool, p bool) {
+func count(content []byte, l bool, c bool, m bool, w bool) (int, int, int, int) {
 
 	if !l && !c && !m && !w {
 		l = true
@@ -78,40 +90,35 @@ func count(content []byte, l bool, c bool, m bool, w bool, p bool) {
 			wordCount++
 		}
 	}
-	printOutput(lineCount, wordCount, charCount, byteCount, p)
+	return lineCount, wordCount, charCount, byteCount
 
 }
 
-func printOutput(lineCount int, wordCount int, charCount int, byteCount int, p bool) {
+func printOutput(lineCount int, wordCount int, charCount int, byteCount int, p bool, filePath string, fp bool) {
 
-	var l string
-	var n string
+	var n, l, c, m, w, f string
 	if p {
 		n = "\n"
+		l = "Lines: "
+		c = "Bytes: "
+		m = "Chars: "
+		w = "Words: "
+		f = "File: "
 	}
 	if lineCount != 0 {
-		if p {
-			l = "Lines: "
-		}
 		fmt.Printf("%s\t%d%s", l, lineCount, n)
 	}
 	if wordCount != 0 {
-		if p {
-			l = "Words: "
-		}
-		fmt.Printf("%s\t%d%s", l, wordCount, n)
+		fmt.Printf("%s\t%d%s", w, wordCount, n)
 	}
 	if charCount != 0 {
-		if p {
-			l = "Chars: "
-		}
-		fmt.Printf("%s\t%d%s", l, charCount, n)
+		fmt.Printf("%s\t%d%s", m, charCount, n)
 	}
 	if byteCount != 0 {
-		if p {
-			l = "Bytes: "
-		}
-		fmt.Printf("%s\t%d%s", l, byteCount, n)
+		fmt.Printf("%s\t%d%s", c, byteCount, n)
+	}
+	if fp {
+		fmt.Printf("%s\t%s%s", f, filePath, n)
 	}
 
 	if !p {
@@ -128,8 +135,17 @@ func main() {
 	p := flag.Bool("p", false, "Print number of and titles on single line")
 	flag.Parse()
 
+	var flags [5]string
+	flags[0] = "-l"
+	flags[1] = "-c"
+	flags[2] = "-m"
+	flags[3] = "-w"
+	flags[4] = "-p"
+
 	filePath := os.Args[len(os.Args)-1]
 
-	count(whichInput(filePath), *l, *c, *m, *w, *p)
+	content, fp := whichInput(filePath, flags)
+	lineCount, wordCount, charCount, byteCount := count(content, *l, *c, *m, *w)
+	printOutput(lineCount, wordCount, charCount, byteCount, *p, filePath, fp)
 
 }
