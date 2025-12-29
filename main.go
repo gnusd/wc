@@ -142,7 +142,7 @@ func printOutput(lineCount int, wordCount int, charCount int, byteCount int, fil
 }
 func handleFiles(files []string, flags [8]bool) {
 	for i := range files {
-		if i < len(files)-1 {
+		if i < len(files)-1 || len(files) == 1 {
 			content, err := readFromFile(files[i])
 			errMsg(err)
 			flags[6] = true
