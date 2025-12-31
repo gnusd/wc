@@ -2,14 +2,44 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"unicode/utf8"
 )
 
-var sumLine, sumWord, sumByte, sumChar int
+type Count struct {
+	Lines    int
+	Bytes    int
+	Chars    int
+	Words    int
+	MaxWidth int
+}
+
+type Sum struct {
+	Lines    int
+	Bytes    int
+	Chars    int
+	Words    int
+	MaxWidth int
+}
+
+type Flags struct {
+	l *bool
+	c *bool
+	m *bool
+	w *bool
+	L *bool
+}
+
+type FileRead struct {
+	fromFile   bool
+	multiple   bool
+	endOfFiles bool
+}
 
 func readFromFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename)
@@ -29,148 +59,188 @@ func errMsg(err error) {
 	}
 }
 
-func count(content []byte, flags [8]bool) (int, int, int, int) {
+func checkFlags(flags Flags) Flags {
 
-	if !flags[0] && !flags[1] && !flags[2] && !flags[3] {
-		flags[0] = true
-		flags[2] = true
-		flags[3] = true
+	if !*flags.l && !*flags.c && !*flags.m && !*flags.w && !*flags.L {
+		*flags.l = true
+		*flags.m = true
+		*flags.w = true
 	}
+	return flags
+}
 
-	var lineCount, byteCount, wordCount, charCount int
+func getCount(content []byte, flags Flags) Count {
+	fl := checkFlags(flags)
+	return Count{
+		Lines:    countLines(content, *fl.l),
+		Bytes:    countBytes(content, *fl.c),
+		Chars:    countChars(content, *fl.m),
+		Words:    countWords(content, *fl.w),
+		MaxWidth: countMaxWidth(content, *fl.L),
+	}
+}
 
-	if flags[0] {
+func initializeSum() Sum {
+	return Sum{
+		Lines:    0,
+		Bytes:    0,
+		Chars:    0,
+		Words:    0,
+		MaxWidth: 0,
+	}
+}
+func addSum(sum *Sum, count Count) {
+	sum.Lines += count.Lines
+	sum.Bytes += count.Bytes
+	sum.Chars += count.Chars
+	sum.Words += count.Words
+	if count.MaxWidth > sum.MaxWidth {
+		sum.MaxWidth = count.MaxWidth
+	}
+}
+
+func countLines(content []byte, flags bool) int {
+	var lineCount int
+	if flags {
 		scanner := bufio.NewScanner(strings.NewReader(string(content)))
 		scanner.Split(bufio.ScanLines)
 		for scanner.Scan() {
 			lineCount++
 		}
 	}
-	if flags[1] {
+	return lineCount
+}
+func countBytes(content []byte, flags bool) int {
+	var byteCount int
+	if flags {
 		scanner := bufio.NewScanner(strings.NewReader(string(content)))
 		scanner.Split(bufio.ScanBytes)
 		for scanner.Scan() {
 			byteCount++
 		}
 	}
-	if flags[2] {
-		scanner := bufio.NewScanner(strings.NewReader(string(content)))
-		scanner.Split(bufio.ScanRunes)
-		for scanner.Scan() {
-			charCount++
-		}
+	return byteCount
+}
+func countChars(content []byte, flags bool) int {
+	var charCount int
+	if flags {
+		charCount = utf8.RuneCount(content)
 	}
-	if flags[3] {
+	return charCount
+}
+func countWords(content []byte, flags bool) int {
+	var wordCount int
+	if flags {
 		scanner := bufio.NewScanner(strings.NewReader(string(content)))
 		scanner.Split(bufio.ScanWords)
 		for scanner.Scan() {
 			wordCount++
 		}
 	}
+	return wordCount
+}
+func countMaxWidth(content []byte, flags bool) int {
+	var maxWidth int
+	if flags {
+		scanner := bufio.NewScanner(bytes.NewReader(content))
 
-	if flags[6] {
-		sumLine += lineCount
-		sumByte += byteCount
-		sumChar += charCount
-		sumWord += wordCount
+		for scanner.Scan() {
+			currentWidth := utf8.RuneCountInString(scanner.Text())
+			if currentWidth > maxWidth {
+				maxWidth = currentWidth
+			}
+		}
 	}
-
-	return lineCount, wordCount, charCount, byteCount
-
+	return maxWidth
 }
 
-func printOutput(lineCount int, wordCount int, charCount int, byteCount int, filePath string, flags [8]bool) {
+func (count Count) printOutput(sum Sum, filePath string, fr FileRead) {
 
-	var n, l, c, m, w, f, t, total string
-	total = "total"
-	if flags[4] {
-		n = "\n"
-		l = "Lines: "
-		c = "Bytes: "
-		m = "Chars: "
-		w = "Words: "
-		f = "File: "
-		t = "Total: "
-	}
+	total := "total"
 	if filePath == "" {
-		flags[5] = false
+		fr.fromFile = false
 	}
-	if lineCount != 0 {
-		fmt.Printf("%s\t%d%s", l, lineCount, n)
+	if count.Lines != 0 {
+		fmt.Printf("\t%d ", count.Lines)
 	}
-	if wordCount != 0 {
-		fmt.Printf("%s\t%d%s", w, wordCount, n)
+	if count.Words != 0 {
+		fmt.Printf("\t%d ", count.Words)
 	}
-	if charCount != 0 {
-		fmt.Printf("%s\t%d%s", m, charCount, n)
+	if count.Chars != 0 {
+		fmt.Printf("\t%d ", count.Chars)
 	}
-	if byteCount != 0 {
-		fmt.Printf("%s\t%d%s", c, byteCount, n)
+	if count.Bytes != 0 {
+		fmt.Printf("\t%d ", count.Bytes)
 	}
-	if flags[5] {
-		fmt.Printf("%s\t%s%s", f, filePath, n)
+	if count.MaxWidth != 0 {
+		fmt.Printf("\t%d ", count.MaxWidth)
 	}
-
-	if !flags[4] && flags[6] {
+	if fr.fromFile {
+		fmt.Printf("\t%s", filePath)
+	}
+	fmt.Println("")
+	if fr.endOfFiles {
+		if sum.Lines != 0 {
+			fmt.Printf("\t%d ", sum.Lines)
+		}
+		if sum.Words != 0 {
+			fmt.Printf("\t%d ", sum.Words)
+		}
+		if sum.Chars != 0 {
+			fmt.Printf("\t%d ", sum.Chars)
+		}
+		if sum.Bytes != 0 {
+			fmt.Printf("\t%d ", sum.Bytes)
+		}
+		if sum.MaxWidth != 0 {
+			fmt.Printf("\t%d ", sum.MaxWidth)
+		}
+		if fr.fromFile {
+			fmt.Printf("\t%s", total)
+		}
 		fmt.Println("")
-	} else if flags[4] && flags[6] {
-		fmt.Println("")
-	} else if !flags[4] {
-		fmt.Println("")
-	}
-	if flags[7] {
-		if sumLine != 0 {
-			fmt.Printf("%s\t%d%s", l, sumLine, n)
-		}
-		if sumWord != 0 {
-			fmt.Printf("%s\t%d%s", c, sumWord, n)
-		}
-		if sumChar != 0 {
-			fmt.Printf("%s\t%d%s", m, sumChar, n)
-		}
-		if sumByte != 0 {
-			fmt.Printf("%s\t%d%s", w, sumByte, n)
-		}
-		if flags[5] {
-			fmt.Printf("%s\t%s%s", t, total, n)
-		}
-		if !flags[4] {
-			fmt.Println("")
-		}
 
 	}
 }
-func handleFiles(files []string, flags [8]bool) {
+
+func handleFiles(files []string, flags Flags) {
+
+	var fr FileRead
+	total := initializeSum()
 	for i := range files {
 		if i < len(files)-1 || len(files) == 1 {
 			content, err := readFromFile(files[i])
 			errMsg(err)
-			flags[6] = true
-			flags[5] = true
-			lineCount, wordCount, charCount, byteCount := count(content, flags)
-			printOutput(lineCount, wordCount, charCount, byteCount, files[i], flags)
+			fr.fromFile = true
+			fr.multiple = true
+			counted := getCount(content, flags)
+			addSum(&total, counted)
+			counted.printOutput(total, files[i], fr)
 		} else {
 			content, err := readFromFile(files[i])
 			errMsg(err)
-			flags[6] = true
-			flags[5] = true
-			flags[7] = true
-			lineCount, wordCount, charCount, byteCount := count(content, flags)
-			printOutput(lineCount, wordCount, charCount, byteCount, files[i], flags)
+			fr.fromFile = true
+			fr.multiple = true
+			fr.endOfFiles = true
+			counted := getCount(content, flags)
+			addSum(&total, counted)
+			counted.printOutput(total, files[i], fr)
 		}
 	}
 }
 
-func handleStdin(content []byte, flags [8]bool) {
+func handleStdin(flags Flags) {
 	var files string
-	lineCount, wordCount, charCount, byteCount := count(content, flags)
-	printOutput(lineCount, wordCount, charCount, byteCount, files, flags)
+	var fr FileRead
+	content, err := readFromStdin()
+	errMsg(err)
+	counted := getCount(content, flags)
+	total := initializeSum()
+	counted.printOutput(total, files, fr)
 }
 
-func handleArgs(args []string, flags [8]bool) {
+func handleArgs(args []string, flags Flags) {
 	var files []string
-	var content []byte
-	var err error
 
 	for index, value := range args {
 		if index != 0 && !strings.HasPrefix(value, "-") {
@@ -180,27 +250,22 @@ func handleArgs(args []string, flags [8]bool) {
 	if len(files) >= 1 {
 		handleFiles(files, flags)
 	} else {
-		content, err = readFromStdin()
-		errMsg(err)
-		handleStdin(content, flags)
+		handleStdin(flags)
 	}
+}
+
+func (flags *Flags) returnFlags() {
+	flags.l = flag.Bool("l", false, "Print the newline counts")
+	flags.c = flag.Bool("c", false, "Print the byte counts")
+	flags.m = flag.Bool("m", false, "Print the character counts")
+	flags.w = flag.Bool("w", false, "Print the word counts")
+	flags.L = flag.Bool("L", false, "Print the maximum display width")
 }
 
 func main() {
 
-	var flags [8]bool
-	l := flag.Bool("l", false, "Print the newline counts")
-	c := flag.Bool("c", false, "Print the byte counts")
-	m := flag.Bool("m", false, "Print the character counts")
-	w := flag.Bool("w", false, "Print the word counts")
-	p := flag.Bool("p", false, "Print number of and titles on single line")
+	var flags Flags
+	flags.returnFlags()
 	flag.Parse()
-
-	flags[0] = *l
-	flags[1] = *c
-	flags[2] = *m
-	flags[3] = *w
-	flags[4] = *p
 	handleArgs(os.Args, flags)
-
 }
