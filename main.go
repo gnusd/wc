@@ -35,11 +35,6 @@ type Flags struct {
 	L *bool
 }
 
-type FileRead struct {
-	fromFile bool
-	multiple bool
-}
-
 func readFromFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename)
 }
@@ -153,10 +148,7 @@ func countMaxWidth(content []byte, flags bool) int {
 	return maxWidth
 }
 
-func (count Count) printOutput(filePath string, fr FileRead) {
-	if filePath == "" {
-		fr.fromFile = false
-	}
+func (count Count) printOutput(filePath string) {
 	if count.Lines != 0 {
 		fmt.Printf("\t%d ", count.Lines)
 	}
@@ -172,14 +164,13 @@ func (count Count) printOutput(filePath string, fr FileRead) {
 	if count.MaxWidth != 0 {
 		fmt.Printf("\t%d ", count.MaxWidth)
 	}
-	if fr.fromFile {
+	if filePath != "" {
 		fmt.Printf("\t%s", filePath)
 	}
 	fmt.Println("")
 }
 
-func (count Count) printEndOutput(sum Sum, fr FileRead) {
-	total := "total"
+func (count Count) printEndOutput(sum Sum) {
 	if sum.Lines != 0 {
 		fmt.Printf("\t%d ", sum.Lines)
 	}
@@ -195,50 +186,35 @@ func (count Count) printEndOutput(sum Sum, fr FileRead) {
 	if sum.MaxWidth != 0 {
 		fmt.Printf("\t%d ", sum.MaxWidth)
 	}
-	if fr.fromFile {
-		fmt.Printf("\t%s", total)
-	}
-	fmt.Println("")
+	fmt.Println("\ttotal")
 }
 
 func handleFiles(files []string, flags Flags) {
-	var fr FileRead
 	total := initializeSum()
 	for i := range files {
-		if len(files) == 1 {
+		if len(files) == 1 || i < len(files)-1 {
 			content, err := readFromFile(files[i])
 			errMsg(err)
-			fr.fromFile = true
 			counted := getCount(content, flags)
-			counted.printOutput(files[i], fr)
-		} else if i < len(files)-1 {
-			content, err := readFromFile(files[i])
-			errMsg(err)
-			fr.fromFile = true
-			fr.multiple = true
-			counted := getCount(content, flags)
+			counted.printOutput(files[i])
 			addSum(&total, counted)
-			counted.printOutput(files[i], fr)
 		} else {
 			content, err := readFromFile(files[i])
 			errMsg(err)
-			fr.fromFile = true
-			fr.multiple = true
 			counted := getCount(content, flags)
 			addSum(&total, counted)
-			counted.printOutput(files[i], fr)
-			counted.printEndOutput(total, fr)
+			counted.printOutput(files[i])
+			counted.printEndOutput(total)
 		}
 	}
 }
 
 func handleStdin(flags Flags) {
 	var files string
-	var fr FileRead
 	content, err := readFromStdin()
 	errMsg(err)
 	counted := getCount(content, flags)
-	counted.printOutput(files, fr)
+	counted.printOutput(files)
 }
 
 func handleArgs(args []string, flags Flags) {
