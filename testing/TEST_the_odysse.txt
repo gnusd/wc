@@ -1,0 +1,10 @@
+=== RUN   TestLines
+--- PASS: TestLines (0.00s)
+=== RUN   TestBytes
+--- PASS: TestBytes (0.01s)
+=== RUN   TestChars
+--- PASS: TestChars (0.00s)
+=== RUN   TestWords
+--- PASS: TestWords (0.01s)
+PASS
+ok  	github.com/gnusd/wc	0.030s

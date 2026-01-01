@@ -61,13 +61,23 @@ func checkFlags(flags Flags) Flags {
 
 func getCount(content []byte, flags Flags) Count {
 	fl := checkFlags(flags)
-	return Count{
-		Lines:    countLines(content, *fl.l),
-		Bytes:    countBytes(content, *fl.c),
-		Chars:    countChars(content, *fl.m),
-		Words:    countWords(content, *fl.w),
-		MaxWidth: countMaxWidth(content, *fl.L),
+	var count Count
+	if *fl.l {
+		count.Lines = countLines(content)
 	}
+	if *fl.c {
+		count.Bytes = countBytes(content)
+	}
+	if *fl.m {
+		count.Chars = countChars(content)
+	}
+	if *fl.w {
+		count.Words = countWords(content)
+	}
+	if *fl.L {
+		count.MaxWidth = countMaxWidth(content)
+	}
+	return count
 }
 
 func initializeSum() Sum {
@@ -90,59 +100,48 @@ func addSum(sum *Sum, count Count) {
 	}
 }
 
-func countLines(content []byte, flags bool) int {
+func countLines(content []byte) int {
 	var lineCount int
-	if flags {
-		scanner := bufio.NewScanner(strings.NewReader(string(content)))
-		scanner.Split(bufio.ScanLines)
-		for scanner.Scan() {
-			lineCount++
-		}
+	scanner := bufio.NewScanner(strings.NewReader(string(content)))
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		lineCount++
 	}
 	return lineCount
 }
-func countBytes(content []byte, flags bool) int {
+func countBytes(content []byte) int {
 	var byteCount int
-	if flags {
-		scanner := bufio.NewScanner(strings.NewReader(string(content)))
-		scanner.Split(bufio.ScanBytes)
-		for scanner.Scan() {
-			byteCount++
-		}
+	scanner := bufio.NewScanner(strings.NewReader(string(content)))
+	scanner.Split(bufio.ScanBytes)
+	for scanner.Scan() {
+		byteCount++
 	}
 	return byteCount
 }
 
-func countChars(content []byte, flags bool) int {
+func countChars(content []byte) int {
 	var charCount int
-	if flags {
-		charCount = utf8.RuneCount(content)
-	}
+	charCount = utf8.RuneCount(content)
 	return charCount
 }
 
-func countWords(content []byte, flags bool) int {
+func countWords(content []byte) int {
 	var wordCount int
-	if flags {
-		scanner := bufio.NewScanner(strings.NewReader(string(content)))
-		scanner.Split(bufio.ScanWords)
-		for scanner.Scan() {
-			wordCount++
-		}
+	scanner := bufio.NewScanner(strings.NewReader(string(content)))
+	scanner.Split(bufio.ScanWords)
+	for scanner.Scan() {
+		wordCount++
 	}
 	return wordCount
 }
 
-func countMaxWidth(content []byte, flags bool) int {
+func countMaxWidth(content []byte) int {
 	var maxWidth int
-	if flags {
-		scanner := bufio.NewScanner(bytes.NewReader(content))
-
-		for scanner.Scan() {
-			currentWidth := utf8.RuneCountInString(scanner.Text())
-			if currentWidth > maxWidth {
-				maxWidth = currentWidth
-			}
+	scanner := bufio.NewScanner(bytes.NewReader(content))
+	for scanner.Scan() {
+		currentWidth := utf8.RuneCountInString(scanner.Text())
+		if currentWidth > maxWidth {
+			maxWidth = currentWidth
 		}
 	}
 	return maxWidth

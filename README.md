@@ -1,16 +1,16 @@
-# Learning the go language 
+# Learning the GO language 
 
-## WC go - a wordcount implementation in go
+## WC GO - a wordcount implementation in GO
 
+I'm aware that there are many implementations of WC in GO and in other languages as well. I wrote this to learn more about the GO programming language. Initially I had some problems with getting the wrong amount of characters returned from the character function. I'm not sure if it was a testing issue rather than an issue with the function. I wrote unit tests and they all passed, I ran the tests with *The Odysse* and *The Complete Works of William Shakespeare* and it corresponded to the numbers from the original WC.
 
-### Problems encountered 
-
-I'm trying to learn go and started with writing an implementation of the Unix program wc. I've struggled with getting the character count to correspond with the character count in Unix wc. I think it's a problem with the *newline*, but I'm not sure. I've looked at other implementations of wc program written in go and haven't figured out what's wrong. I'll keep trying to figure it out.
+It was a fun project and I learned a lot.
 
 
 ### Useage 
+Print newline, word, and byte counts for each FILE, and a total line if more than one FILE is specified. A word is a non-zero-length sequence of printable characters delimited by white space.
 
-I use the classic Unix wc flags
+The options below may be used to select which counts are printed, always in the following order: newline, word, character, byte, maximum line length.
 
 
 ``` bash
